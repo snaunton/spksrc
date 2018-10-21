@@ -116,7 +116,7 @@ stop_daemon ()
     sleep 1
 
     # Force umount of anything mounted under the chroot
-    grep "${CHROOTTARGET}" /proc/mounts | awk -v FPAT="([^ ]+)|(\"[^\"]+\")" '{print $2}')" | sort -r | while read TARGET; do
+    grep "${CHROOTTARGET}" /proc/mounts | awk -v FPAT="([^ ]+)|(\"[^\"]+\")" '{print $2}' | sort -r | while read TARGET; do
         umount -f "${TARGET}"
     done
 
