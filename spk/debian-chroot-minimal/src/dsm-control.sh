@@ -29,7 +29,7 @@ bind_mounts_mount ()
 {
     sed -e 's/#.*$//' -e '/^\s*$/d' "${BIND_MOUNTS}" | while read MOUNT; do
         TARGET="$(echo ${MOUNT} | awk -v FPAT="([^ ]+)|(\"[^\"]+\")" '{print $2}')"
-        grep -q "$(realpath "${TARGET}") " /proc/mounts || mount --bind "${MOUNT}"
+        grep -q "$(realpath "${TARGET}") " /proc/mounts || mount --bind ${MOUNT}
     done
 }
 
