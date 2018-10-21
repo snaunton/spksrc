@@ -1,0 +1,90 @@
+Intro
+
+Debian is a free operating system (OS) that comes with over 29000 packages, precompiled software bundled up in a nice format for easy installation on your DiskStation. Debian Chroot allows you to benefit from the Debian OS inside your DiskStation, alongside DSM. This package is intended for advanced users who are happy using linux/Debian from the command line and understand the general concept and operation of chroot only.
+
+Debian Chroot Minimal is an alternative to/replacement for, and is heavily based on, Debian Chroot. It removes Python as a dependency as this was used only for the DSM front end which, in the author's opinion, is not needed as it is expected that anyone installing Debian Chroot is happy using command line, and it is much easier to maintain as it is essentially just a bash script. Debian Chroot Minimal can still be installed, uninstalled, stopped and started from the DSM GUI, and will be started automatically on boot. It also uses Stretch as the base instead of Jessie.
+
+The author also added in checks to makes sure all processes running and all mounts mounted within the chroot and stopped and unmounted when the Debian Chroot Minimal service is stopped - either on the command line or DSM GUI. It is suspected that mounts remaining when Debian Chroot was uninstalled is the cause of other users losing data - https://github.com/SynoCommunity/spksrc/issues/1910. However, it behooves the user to make sure that Debian Chroot Minimal is stopped properly when uninstall or upgrading, by making sure that there are no processes running and nothing mounted under the chroot.
+
+Installation
+
+Once the installation finished in the Package Center, it continues in the background and you can see its status to Installing under Overview in the left pane. The installation finished, the status will automatically change to Installed. The file /var/packages/debian-chroot-minimal/target/var/installed is created once the install has finished.
+
+Usage
+
+As soon as the status is Installed, you can start using the chroot. To do so, connect to the DiskStation through SSH (root user) and use the following command: /var/packages/debian-chroot/scripts/start-stop-status chroot.
+
+On the first use (after several minutes, for things to install), it is recommended to perform some configuration operations:
+
+    Update: type apt-get update followed by apt-get upgrade
+    Locales: type apt-get install locales and then dpkg-reconfigure locales
+    Timezone: execute dpkg-reconfigure tzdata
+
+See below for detailed configuration instructions which are all done from the command line, so you need ssh access to the NAS.
+
+What Debian Chroot Minimal does:
+
+When Debian Chroot Minimal is started:
+
+1. Scripts in /var/packages/debian-chroot-minimal/target/etc/prestart.d are executed using run-parts
+2. Mounts listed in /var/packages/debian-chroot-minimal/target/etc/bind-mounts are mounted in the order they appear in the file
+3. Mounts needed for the choot (dev, sys, proc, dev/pts) are mounted
+4. Services listed in /var/packages/debian-chroot-minimal/target/etc/services are started in order
+
+When Debian Chroot Minimal is stopped:
+
+1. Services listed in /var/packages/debian-chroot-minimal/target/etc/services are stopped in the reverse order they appear in the file
+2. kill is executed against any remaining processes running under the chroot
+3. kill -9 is executed against any remaining processes running under the chroot
+4. Mounts needed for the choot (dev, sys, proc, dev/pts) are unmounted
+5. Mounts listed in /var/packages/debian-chroot-minimal/target/etc/bind-mounts are umounted in the reverse order they appear in the file 
+6. Any mounts remaining under the chroot are force unmounted  
+
+This is all done by the script /var/packages/debian-chroot-minimal/scripts/start-stop-status.
+
+
+Configuring:
+
+The following files and directories are present in /var/packages/debian-chroot-minimal/target/etc which affect the configuration of Debian Chroot Minimal.
+
+/var/packages/debian-chroot-minimal/target/etc/bind-mounts:
+
+This file contains a list of directories to mount, using --bind, in order to provide access to files outside of the chroot within the chroot. Paths are relative to outside of the chroot. Mounts are unmounted in reverse order when Debian Chroot Minimal is stopped.
+
+The format is:
+
+directory mount-target
+
+Example:
+
+/volume1/public/Downloads /var/packages/debian-chroot-minimal/var/chroottarget/mnt/Downloads
+
+The above will bind /volume1/public/Downloads to /mnt/Downloads within the chroot.
+
+
+/var/packages/debian-chroot-minimal/target/etc/services:
+
+This file should contain a list of executables, one on each line, to execute in order within the chroot when it is started and stopped in reverse order when Debian Chroot Minimal is stopped. Paths are relative to the chroot.
+
+The executables should accept "start", "stop" and "status" (without quotes) as the first parameter.
+
+start: start the services
+
+stop: stop the service
+
+status: must return 0 if the service is running or non-zero if the service is not running
+
+Example:
+
+/etc/init.d/ssh
+/etc/init.d/transmission-daemon
+
+The above will start and stop ssh and transmission-daemon within the chroot when the chroot is started and stopped.
+
+
+/var/packages/debian-chroot-minimal/target/etc/prestart.d and /var/packages/debian-chroot-minimal/target/etc/poststop.d:
+
+Add any scripts to execute before the chroot is started to prestart.d.
+Add any scripts to execute after the chroot is stopped to poststop.d.
+Both prestart.d and poststop.d are executed by run-parts.
+See the run-parts documentation for more details.
